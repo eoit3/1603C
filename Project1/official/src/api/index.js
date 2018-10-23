@@ -1,6 +1,7 @@
 import {getToken} from '@/utils/index.js';
 // 动态判断域名
-const host = /localhost/.test(window.location.host)?'http://baojia-test.chelun.com':'https://baojia.chelun.com';
+// const host = /localhost/.test(window.location.host)?'http://baojia-test.chelun.com':'https://baojia.chelun.com';
+const host = 'https://baojia.chelun.com';
 function sendRequest(url, method = 'GET', data = {}){
     let params = {
         method
@@ -16,7 +17,12 @@ function sendRequest(url, method = 'GET', data = {}){
         // url += `&_=${+new Date()}`
     }
     // 拼接登陆态token
-    url += `&token=${getToken()}`;
+    if (url.indexOf('?') === -1){
+      url += `?token=${getToken()}`;
+    } else {
+      url += `&token=${getToken()}`;
+    }
+   
     return fetch(host+url, params).then(res=>res.json()).then(body=>body);
 }
 
@@ -69,3 +75,4 @@ export let getCategoryImgList = (param)=>{
     }
     return sendRequest(`/v2-car-getCategoryImageList.html?${search.slice(1, search.length)}`);
 }
+

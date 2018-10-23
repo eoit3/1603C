@@ -23,6 +23,7 @@
 <script>
     var md5 = require('md5');
     import {setToken} from '@/utils/index.js';
+    import {getToken} from '@/utils/index.js';
     export default {
         data(){
             return {
@@ -55,7 +56,8 @@
                 }
                 // window.localStorage.setItem('login', 'true');
                 // this.$router.push('/');
-                fetch('http://169.254.78.172:10001/login', {
+              
+                fetch(`http://localhost:10001/login`, {
                     method: 'POST',
                     body: JSON.stringify({
                         username: this.username,
@@ -70,7 +72,9 @@
                 .then(body=>{
                     console.log('body...', body);
                     // 设置token
-                    setToken(body.data.token);
+                    if (body.status !== 0){
+                       setToken(body.data.token);
+                    }
                     this.$alert(body.msg);
                 })
             },
@@ -86,7 +90,7 @@
                     this.$alert("手机号码有误，请重填");
                     return;
                 }
-                fetch('http://169.254.78.172:10001/sendSMS', {
+                fetch('http://localhost:10001/sendSMS', {
                     method: 'POST',
                     body: JSON.stringify({
                         phone: this.phone

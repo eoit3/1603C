@@ -3,9 +3,10 @@ const SMSClient = require('@alicloud/sms-sdk');
 const bodyParser = require('body-parser');
 const md5 = require('md5');
 let app = express();
+const cookie = require('js-cookie');
 
 // 引入mysql
-var mysql      = require('mysql');
+var mysql  = require('mysql');
 var connection = mysql.createConnection({
   host     : 'localhost',
   user     : 'root',
@@ -13,21 +14,43 @@ var connection = mysql.createConnection({
   database : '1603c'
 });
 
-
-
 app.all('*', function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "content-type");
     res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS");
+    // res.header('Access-Control-Allow-Credentials', 'true');
     // res.header("Content-Type", "application/json;charset=utf-8");
-
-    next();
+    console.log(req.params[0],'1111111111111')
+    if (req.params[0] === '/login' || req.params[0] === '/sendSMS') {
+       next();
+    } else {
+      let Token = req.query.token;
+      if (Token){ // order by token.create_time desc limit 1
+        connection.query(`select * from token where token = '${Token}' order by token desc limit 1`,function(error,results,fields){
+          if (results){
+            console.log('result...', results[0].create_time);
+            let date = +new Date();
+            let leftTime = Math.floor((date - results[0].create_time)/1000/60/60/24)
+            if (leftTime > 7 ){
+              res.json({
+                msg:'请重新登陆',
+                status:0
+              })
+            } else {
+              next();
+            }
+          }
+        })
+      }
+    }
 });
 
 app.get('/', (req, res) => {
     res.send('hello world');
 })
-
+app.get('/list',(req,res) => {
+  res.json('lllll')
+})
 // 发送短信验证码
 app.post('/sendSMS', bodyParser.json(), async (req, res) => {
     console.log('req.body...', req.body);
@@ -41,7 +64,7 @@ app.post('/sendSMS', bodyParser.json(), async (req, res) => {
         }
         // 把code存入数据库中
         connection.query(`insert into phone_code (phone, code, create_time) values(${req.body.phone}, ${code}, ${+ new Date()})`, function (error, results, fields) {
-            console.log('result...', results);
+          //  console.log('result...', results);
             if (results.insertId){
                 res.json({
                     code: 1,
@@ -54,7 +77,7 @@ app.post('/sendSMS', bodyParser.json(), async (req, res) => {
                 })
             }
         })
-    }catch{
+    } catch (e){
         res.json({
             code: -1,
             msg: '发送短信验证码失败'
@@ -65,13 +88,12 @@ app.post('/sendSMS', bodyParser.json(), async (req, res) => {
 // 登陆接口
 app.post('/login', bodyParser.json(),  (req, res)=>{
     let {username,password,phone, code} = req.body;
-    console.log('req.body...', req.body);
     // 查询手机号是否注册过
     connection.query(`select count(*) as num from user where phone=${phone}`, function (error, results, fields) {
         if (error) throw error;
 
-        console.log('The solution is: ', results[0].solution);
-        console.log('result...', results);
+        // console.log('The solution is: ', results[0].solution);
+        // console.log('result...', results);
         if (results[0].num){
             // 查询到数据，做登陆操作
             connection.query(`select phone_code.code as code, phone_code.status as status, phone_code.create_time as create_time, user.id as id from user,phone_code where user.phone=phone_code.phone
@@ -106,7 +128,7 @@ app.post('/login', bodyParser.json(),  (req, res)=>{
                              // 生成登陆态之后获取用户的权限
                             connection.query(`select access.accessname from user,roler,access,user_roler,roler_access where user.id=user_roler.uid and
                             user_roler.rid = roler.id and roler.id = roler_access.rid and roler_access.aid = access.id and user.id = ${results[0].id} group by access.accessname`, function (error, results, fields) {
-                                console.log('results...', results);
+                                // console.log('results...', results);
                                 let access = results.map(item=>item.accessname);
                                 res.json({
                                     code: 1,
@@ -130,7 +152,7 @@ app.post('/login', bodyParser.json(),  (req, res)=>{
         }else{
             // 做注册操作
             connection.query(`insert into user (username, password, phone, create_time) values("${username}", "${password}", ${phone}, ${+ new Date()})`, function (error, results, fields) {
-                console.log('result...', results);
+              //  console.log('result...', results);
                 if (results.insertId){
                     res.json({
                         code: 1,

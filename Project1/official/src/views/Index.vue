@@ -28,6 +28,7 @@
     import {mapState, mapActions, mapMutations} from 'vuex';
     import MakeList from '@/components/MakeList';
     import {lazyLoad} from '@/utils/lazyLoad';
+    import {getToken} from '@/utils/index.js';
     export default{
         name: 'Index',
         computed: {
@@ -100,6 +101,7 @@
         mounted(){
             this.getBrandList();
             lazyLoad('.car-list');
+            fetch(`http://localhost:10001/list?token=${getToken()}`,{method:'GET'}).then(res=>res.json()).then(body=>{console.log(body)})
         }
     }
 </script>
